@@ -1,0 +1,31 @@
+# Python virtual environment
+venv/
+env/
+ENV/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# VS Code settings
+.vscode/
+
+# Model files
+*.pt
+*.pth
+*.h5
+*.json
+
+# Video files
+*.mp4
+*.avi
+*.mov
+
+# Dataset files
+*.csv
