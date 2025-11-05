@@ -87,7 +87,7 @@ Pandas
 NumPy
 cvzone
 
-nstallation
+Installation
 
 Clone the repository
 
