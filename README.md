@@ -36,6 +36,11 @@
 > 🎬 **[Watch the Demo Video](https://drive.google.com/)**  
 *(Replace this link with your actual Google Drive demo video link — use “Anyone with link → Viewer” setting.)*
 
+
+
+<img width="1587" height="2245" alt="Yellow and blue Modern Technology Poster (3)" src="https://github.com/user-attachments/assets/c08e02d4-7815-4369-8184-f65d34f2586b" />
+
+
 ---
 
 ## 💡 Project Overview
