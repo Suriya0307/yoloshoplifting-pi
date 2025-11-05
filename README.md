@@ -86,3 +86,81 @@ XGBoost
 Pandas
 NumPy
 cvzone
+
+nstallation
+
+Clone the repository
+
+git clone [your-repo-url]
+cd [repo-name]
+
+
+Create and activate a virtual environment
+
+python -m venv venv
+# Windows
+.\venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+
+
+Install dependencies
+
+pip install -r requirements.txt
+
+▶️ Usage
+
+Create Dataset
+
+python datset.py
+
+
+Collect normal and suspicious pose data from video frames.
+
+Train Model
+
+python model.py
+
+
+Train an XGBoost classifier using the extracted dataset.
+
+Run Real-Time Detection
+
+python main.py
+
+
+Launches live detection and visualization.
+Press ‘q’ to quit the application.
+
+📁 Project Structure
+shoplifting-detection-yolo/
+├── main.py               # Main application for real-time detection
+├── dataset.py            # Dataset creation and preprocessing
+├── model.py              # XGBoost model training
+├── Normal.py             # Normal behavior data collection
+├── Suspicious.py         # Suspicious behavior data collection
+├── requirements.txt      # Dependencies
+└── README.md             # Documentation
+
+🧠 Why This Project
+
+Retail theft leads to billions in global losses every year.
+This project aims to provide a non-invasive, AI-based surveillance system that helps detect suspicious actions automatically and assist human security operators.
+
+Goal: To make retail spaces safer using ethical and intelligent AI vision.
+
+📜 License
+
+This project is licensed under the MIT License —
+You are free to use, modify, and distribute this work with proper credit.
+
+🤝 Contributing
+
+Contributions are always welcome!
+If you’d like to improve detection accuracy, optimize models, or enhance visualization — please open an issue or submit a pull request.
+
+<div align="center">
+
+🧠 Built with Intelligence. Secured with Vision. Powered by AI.
+
+</div> ```
