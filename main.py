@@ -7,7 +7,7 @@ import numpy as np
 import cvzone
 
 # Define the path to the video file
-video_path = "vid.mp4"
+video_path = "rtsp://admin:admin%40123@192.168.0.109:554/cam/realmonitor?channel=1&subtype=1"
 
 def detect_shoplifting(video_path):
     # Load YOLOv8 model
@@ -109,19 +109,4 @@ def detect_shoplifting(video_path):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    detect_shoplifting(video_path)        # Press 'q' to stop the video early
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-
-        # Increment frame counter
-        frame_tot += 1
-
-    # Release resources
-    cap.release()
-    
-
-    # Close all OpenCV windows after processing is complete
-    cv2.destroyAllWindows()
-
-# Call the function with the video path
-detect_shoplifting(video_path)
+    detect_shoplifting(video_path)
