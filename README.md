@@ -149,18 +149,10 @@ This project aims to provide a non-invasive, AI-based surveillance system that h
 
 Goal: To make retail spaces safer using ethical and intelligent AI vision.
 
-📜 License
-
-This project is licensed under the MIT License —
-You are free to use, modify, and distribute this work with proper credit.
 
 🤝 Contributing
 
 Contributions are always welcome!
 If you’d like to improve detection accuracy, optimize models, or enhance visualization — please open an issue or submit a pull request.
 
-<div align="center">
-
-🧠 Built with Intelligence. Secured with Vision. Powered by AI.
-
-</div> ```
+Built with Intelligence. Secured with Vision.
