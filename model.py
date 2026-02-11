@@ -39,3 +39,5 @@ print(f"Accuracy: {accuracy}")
 
 # Save the trained model to a file
 model.save_model(r"C:\Users\WIN 11\Downloads\yoloposeshopliftingmain\yolo-pose-shoplifting-main\trained_model.json")
+
+
