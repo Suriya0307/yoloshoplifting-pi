@@ -7,7 +7,7 @@ import numpy as np
 import cvzone
 
 # Define the path to the video file
-video_path = "rtsp://admin:@:554/cam/realmonitor?channel=1&subtype=1"
+video_path = "vid.mp4"
 
 def detect_shoplifting(video_path):
     # Load YOLOv8 model
