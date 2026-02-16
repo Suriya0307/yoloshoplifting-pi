@@ -3,7 +3,7 @@
 > **An intelligent surveillance system** that detects shoplifting behavior using **YOLOv8 Pose Estimation** and **XGBoost Classification**.  
 > Real-time detection of suspicious movements through human pose analysis — bringing AI vision to retail security.
 
----
+---     
 
 <div align="center">
 
