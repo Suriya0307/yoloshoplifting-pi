@@ -5,3 +5,4 @@ numpy>=2.2.0
 xgboost>=3.0.0
 cvzone>=1.6.0
 scikit-learn>=1.6.0
+streamlit>=1.39.0

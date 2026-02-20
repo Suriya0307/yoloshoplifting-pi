@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RetailGuard AI — System Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #060c1a;
+      --bg2:      #0b1120;
+      --card:     #0f172a;
+      --border:   #1e293b;
+      --blue:     #3b82f6;
+      --indigo:   #6366f1;
+      --violet:   #8b5cf6;
+      --pink:     #ec4899;
+      --red:      #ef4444;
+      --amber:    #f59e0b;
+      --green:    #22c55e;
+      --cyan:     #06b6d4;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --glow-b:   rgba(59,130,246,0.35);
+      --glow-v:   rgba(139,92,246,0.35);
+      --glow-g:   rgba(34,197,94,0.3);
+      --glow-c:   rgba(6,182,212,0.3);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Animated starfield bg ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(59,130,246,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 50%, rgba(6,182,212,0.04) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ─── Header ─── */
+    header {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: 48px 24px 28px;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 99px; padding: 5px 16px;
+      font-size: 0.73rem; font-weight: 600;
+      color: #93c5fd; letter-spacing: 0.08em;
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.85)} }
+
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 10px;
+      background: linear-gradient(120deg, #60a5fa 0%, #a78bfa 40%, #06b6d4 80%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted); font-size: 0.95rem; max-width: 620px; margin: 0 auto;
+    }
+
+    /* ─── Legend ─── */
+    .legend {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 12px; margin: 28px auto 8px; padding: 0 24px;
+      max-width: 900px;
+    }
+    .leg-item {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 12px;
+      font-size: 0.72rem; font-weight: 500; color: var(--text);
+    }
+    .leg-color { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ─── Main diagram canvas ─── */
+    .diagram {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 20px auto 60px;
+      padding: 0 24px;
+    }
+
+    /* ─── Layer wrapper ─── */
+    .layer {
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 24px 20px;
+      position: relative;
+      backdrop-filter: blur(4px);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .layer:hover { box-shadow: 0 0 40px rgba(255,255,255,0.04); }
+
+    .layer-label {
+      position: absolute; top: -12px; left: 24px;
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 3px 12px;
+      border-radius: 99px; border: 1px solid;
+    }
+
+    /* Layer themes */
+    .layer-input   { background: linear-gradient(135deg, rgba(6,182,212,0.06) 0%, rgba(6,182,212,0.02) 100%); }
+    .layer-input .layer-label   { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.4); color: #22d3ee; }
+
+    .layer-preproc { background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(59,130,246,0.02) 100%); }
+    .layer-preproc .layer-label { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #60a5fa; }
+
+    .layer-ai      { background: linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(99,102,241,0.04) 100%); }
+    .layer-ai .layer-label      { background: rgba(139,92,246,0.18); border-color: rgba(139,92,246,0.4); color: #c4b5fd; }
+
+    .layer-class   { background: linear-gradient(135deg, rgba(236,72,153,0.07) 0%, rgba(236,72,153,0.02) 100%); }
+    .layer-class .layer-label   { background: rgba(236,72,153,0.15); border-color: rgba(236,72,153,0.4); color: #f9a8d4; }
+
+    .layer-output  { background: linear-gradient(135deg, rgba(239,68,68,0.07) 0%, rgba(245,158,11,0.04) 100%); }
+    .layer-output .layer-label  { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+
+    .layer-dashboard { background: linear-gradient(135deg, rgba(34,197,94,0.06) 0%, rgba(34,197,94,0.02) 100%); }
+    .layer-dashboard .layer-label { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); color: #86efac; }
+
+    .layer-training { background: linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(245,158,11,0.02) 100%); }
+    .layer-training .layer-label { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); color: #fcd34d; }
+
+    /* ─── Node grid ─── */
+    .node-row {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      margin-top: 6px;
+    }
+    .node-row.center { justify-content: center; }
+
+    /* ─── Arrow between layers ─── */
+    .arrow {
+      text-align: center; padding: 4px 0;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 0.7rem; color: var(--muted); font-weight: 500;
+    }
+    .arrow-line {
+      height: 28px; width: 2px;
+      background: linear-gradient(to bottom, rgba(99,102,241,0.6), rgba(59,130,246,0.2));
+      margin: 0 auto;
+      border-radius: 2px;
+      position: relative;
+    }
+    .arrow-line::after {
+      content: '';
+      position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+      border-left: 5px solid transparent; border-right: 5px solid transparent;
+      border-top: 7px solid rgba(99,102,241,0.7);
+    }
+    .arrow-label {
+      display: inline-block;
+      background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 6px; padding: 2px 10px;
+      font-size: 0.65rem; color: #a5b4fc; letter-spacing: 0.06em;
+    }
+
+    /* ─── Node card ─── */
+    .node {
+      display: flex; flex-direction: column;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px;
+      min-width: 150px; flex: 1;
+      cursor: default;
+      transition: all 0.25s ease;
+      position: relative; overflow: hidden;
+    }
+    .node::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      transition: opacity 0.3s ease;
+      border-radius: inherit;
+    }
+    .node:hover { transform: translateY(-4px); }
+    .node:hover::before { opacity: 1; }
+
+    .node-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .node-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; }
+    .node-file  {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.6rem; color: var(--muted);
+      background: rgba(255,255,255,0.04); border-radius: 4px;
+      padding: 2px 6px; margin-bottom: 6px; display: inline-block;
+    }
+    .node-desc { font-size: 0.68rem; color: var(--muted); line-height: 1.5; }
+    .node-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .tag {
+      font-size: 0.58rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 4px; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+
+    /* Colour variants for nodes */
+    .node.cyan   { border-color: rgba(6,182,212,0.35); }
+    .node.cyan:hover  { box-shadow: 0 8px 30px rgba(6,182,212,0.2); border-color: rgba(6,182,212,0.6); }
+    .node.cyan::before { background: radial-gradient(circle at 50% 0%, rgba(6,182,212,0.1), transparent 70%); }
+    .node.cyan .node-title { color: #22d3ee; }
+    .tag.cyan  { background: rgba(6,182,212,0.15); color: #67e8f9; }
+
+    .node.blue  { border-color: rgba(59,130,246,0.35); }
+    .node.blue:hover { box-shadow: 0 8px 30px rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.6); }
+    .node.blue::before { background: radial-gradient(circle at 50% 0%, rgba(59,130,246,0.1), transparent 70%); }
+    .node.blue .node-title { color: #60a5fa; }
+    .tag.blue { background: rgba(59,130,246,0.15); color: #93c5fd; }
+
+    .node.violet { border-color: rgba(139,92,246,0.35); }
+    .node.violet:hover { box-shadow: 0 8px 30px rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.6); }
+    .node.violet::before { background: radial-gradient(circle at 50% 0%, rgba(139,92,246,0.1), transparent 70%); }
+    .node.violet .node-title { color: #c4b5fd; }
+    .tag.violet { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+
+    .node.pink  { border-color: rgba(236,72,153,0.35); }
+    .node.pink:hover  { box-shadow: 0 8px 30px rgba(236,72,153,0.2); border-color: rgba(236,72,153,0.6); }
+    .node.pink::before { background: radial-gradient(circle at 50% 0%, rgba(236,72,153,0.1), transparent 70%); }
+    .node.pink .node-title { color: #f9a8d4; }
+    .tag.pink { background: rgba(236,72,153,0.15); color: #f9a8d4; }
+
+    .node.red   { border-color: rgba(239,68,68,0.35); }
+    .node.red:hover   { box-shadow: 0 8px 30px rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.6); }
+    .node.red::before { background: radial-gradient(circle at 50% 0%, rgba(239,68,68,0.1), transparent 70%); }
+    .node.red .node-title { color: #fca5a5; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
+    .node.amber { border-color: rgba(245,158,11,0.35); }
+    .node.amber:hover { box-shadow: 0 8px 30px rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.6); }
+    .node.amber::before { background: radial-gradient(circle at 50% 0%, rgba(245,158,11,0.1), transparent 70%); }
+    .node.amber .node-title { color: #fcd34d; }
+    .tag.amber { background: rgba(245,158,11,0.15); color: #fcd34d; }
+
+    .node.green { border-color: rgba(34,197,94,0.35); }
+    .node.green:hover { box-shadow: 0 8px 30px rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.6); }
+    .node.green::before { background: radial-gradient(circle at 50% 0%, rgba(34,197,94,0.1), transparent 70%); }
+    .node.green .node-title { color: #86efac; }
+    .tag.green { background: rgba(34,197,94,0.15); color: #86efac; }
+
+    /* ─── Info tooltip popup ─── */
+    .node[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; padding: 8px 12px;
+      font-size: 0.68rem; color: #cbd5e1; white-space: nowrap;
+      z-index: 100; pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    /* ─── Divider connector (for training branch) ─── */
+    .branch-wrapper {
+      display: flex; gap: 12px; align-items: stretch;
+    }
+    .branch-main { flex: 2; }
+    .branch-side { flex: 1; }
+    .branch-connector {
+      display: flex; align-items: center;
+      font-size: 1.2rem; color: var(--muted);
+      padding: 0 4px;
+    }
+
+    /* ─── Data flow table ─── */
+    .flow-table-wrap {
+      max-width: 1200px; margin: 0 auto 60px; padding: 0 24px;
+    }
+    .section-head {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--muted);
+      margin-bottom: 14px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .flow-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      transition: all 0.2s ease;
+    }
+    .flow-card:hover { border-color: #334155; transform: translateY(-2px); }
+    .flow-card-title { font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; }
+    .flow-card-body  { font-size: 0.7rem; color: var(--muted); line-height: 1.6; }
+    .flow-card-body code {
+      font-family: 'Fira Code', monospace;
+      background: rgba(255,255,255,0.06); border-radius: 4px;
+      padding: 1px 5px; font-size: 0.65rem; color: #a5b4fc;
+    }
+
+    /* ─── Tech stack strip ─── */
+    .tech-strip {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; margin: 16px auto 40px;
+      max-width: 900px; padding: 0 24px;
+    }
+    .tech-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 99px; padding: 6px 14px;
+      font-size: 0.72rem; font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .tech-pill:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+      transform: translateY(-2px);
+    }
+    .tech-pill-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    footer {
+      text-align: center; padding: 24px;
+      color: var(--muted); font-size: 0.72rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="badge"><span class="badge-dot"></span> System Architecture Diagram</div>
+  <h1>RetailGuard AI — Automated Shoplifting Detection</h1>
+  <p>End-to-end pipeline: Video ingestion → YOLO Pose Estimation → XGBoost Classification → Real-time Dashboard Alerts</p>
+</header>
+
+<!-- ─── LEGEND ──────────────────────────────────────────────────────────────── -->
+<div class="legend">
+  <div class="leg-item"><div class="leg-color" style="background:#06b6d4"></div>Input / Video Sources</div>
+  <div class="leg-item"><div class="leg-color" style="background:#3b82f6"></div>Pre-processing</div>
+  <div class="leg-item"><div class="leg-color" style="background:#8b5cf6"></div>AI Inference</div>
+  <div class="leg-item"><div class="leg-color" style="background:#ec4899"></div>Classification</div>
+  <div class="leg-item"><div class="leg-color" style="background:#ef4444"></div>Output / Alerts</div>
+  <div class="leg-item"><div class="leg-color" style="background:#22c55e"></div>Dashboard (UI)</div>
+  <div class="leg-item"><div class="leg-color" style="background:#f59e0b"></div>Training Pipeline</div>
+</div>
+
+<!-- ─── DIAGRAM ─────────────────────────────────────────────────────────────── -->
+<div class="diagram">
+
+  <!-- ══ LAYER 1: INPUT ══ -->
+  <div class="layer layer-input">
+    <span class="layer-label">① Input Layer — Video Sources</span>
+    <div class="node-row center">
+
+      <div class="node cyan" data-tooltip="Pre-recorded .mp4 video files">
+        <div class="node-icon">🎬</div>
+        <div class="node-title">Video File</div>
+        <div class="node-file">vid.mp4 / nm1.mp4 / susup1.mp4</div>
+        <div class="node-desc">Pre-recorded surveillance footage for offline analysis.</div>
+        <div class="node-tags">
+          <span class="tag cyan">MP4</span>
+          <span class="tag cyan">cv2.VideoCapture</span>
+        </div>
+      </div>
+
+      <div class="node cyan" data-tooltip="Real-time IP camera stream via RTSP protocol">
+        <div class="node-icon">📡</div>
+        <div class="node-title">RTSP IP Camera</div>
+        <div class="node-file">rtsp://user:pass@ip:554/stream</div>
+        <div class="node-desc">Live stream from network-connected IP cameras. Tested via OpenCV before use.</div>
+        <div class="node-tags">
+          <span class="tag cyan">RTSP</span>
+          <span class="tag cyan">Live Stream</span>
+        </div>
+      </div>
+
+      <div class="node cyan" data-tooltip="Local USB/built-in webcam feed">
+        <div class="node-icon">📷</div>
+        <div class="node-title">Webcam</div>
+        <div class="node-file">cv2.VideoCapture(index)</div>
+        <div class="node-desc">Locally connected camera. Selectable camera index (0–10).</div>
+        <div class="node-tags">
+          <span class="tag cyan">Webcam</span>
+          <span class="tag cyan">Real-time</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- arrow -->
+  <div style="text-align:center; padding: 4px 0;">
+    <div class="arrow-line"></div>
+    <div class="arrow"><span class="arrow-label">Raw BGR Frames — cv2.VideoCapture</span></div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ══ LAYER 2: PRE-PROCESSING ══ -->
+  <div class="layer layer-preproc">
+    <span class="layer-label">② Pre-processing Layer</span>
+    <div class="node-row center">
+
+      <div class="node blue" data-tooltip="Resizes every frame to 1018×600 for consistent model input">
+        <div class="node-icon">📐</div>
+        <div class="node-title">Frame Resizer</div>
+        <div class="node-file">detector.py / dashboardfinal.py</div>
+        <div class="node-desc">Each frame is resized to <strong>1018 × 600</strong> pixels for uniform model input size.</div>
+        <div class="node-tags">
+          <span class="tag blue">cv2.resize</span>
+          <span class="tag blue">1018×600</span>
+        </div>
+      </div>
+
+      <div class="node blue" data-tooltip="Confidence filtering removes low-quality detections">
+        <div class="node-icon">🎚️</div>
+        <div class="node-title">Confidence Filter</div>
+        <div class="node-file">dashboardfinal.py</div>
+        <div class="node-desc">Bounding boxes with YOLO confidence below the user-set threshold are discarded (default 0.55).</div>
+        <div class="node-tags">
+          <span class="tag blue">conf_threshold</span>
+          <span class="tag blue">Filter</span>
+        </div>
+      </div>
+
+      <div class="node blue" data-tooltip="Keypoints extracted as normalised (x,y) coordinates">
+        <div class="node-icon">🦴</div>
+        <div class="node-title">Keypoint Extractor</div>
+        <div class="node-file">detector.py</div>
+        <div class="node-desc">17 COCO body keypoints (x,y) extracted per person as normalised coordinates from YOLO results.</div>
+        <div class="node-tags">
+          <span class="tag blue">17 Keypoints</span>
+          <span class="tag blue">xyn</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- arrow -->
+  <div style="text-align:center; padding: 4px 0;">
+    <div class="arrow-line"></div>
+    <div class="arrow"><span class="arrow-label">Resized Frame + YOLO Results</span></div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ══ LAYER 3: AI INFERENCE — YOLO ══ -->
+  <div class="layer layer-ai">
+    <span class="layer-label">③ AI Inference Layer — Pose Estimation</span>
+    <div class="node-row center">
+
+      <div class="node violet" data-tooltip="YOLO11 nano-pose detects humans and their 17-point skeleton">
+        <div class="node-icon">🤖</div>
+        <div class="node-title">YOLO11n-Pose Model</div>
+        <div class="node-file">yolo11n-pose.pt  (6 MB)</div>
+        <div class="node-desc">
+          Ultralytics YOLO11 nano pose variant. Performs <strong>person detection + 17-point skeleton estimation</strong> in a single forward pass.
+          Outputs bounding boxes, confidence scores &amp; normalized keypoints.
+        </div>
+        <div class="node-tags">
+          <span class="tag violet">Ultralytics</span>
+          <span class="tag violet">Pose</span>
+          <span class="tag violet">YOLO11</span>
+          <span class="tag violet">6 MB</span>
+        </div>
+      </div>
+
+      <div class="node violet" data-tooltip="Larger YOLO11s-pose used only in dataset collection scripts">
+        <div class="node-icon">🧠</div>
+        <div class="node-title">YOLO11s-Pose (Training)</div>
+        <div class="node-file">yolo11s-pose.pt  (20 MB)</div>
+        <div class="node-desc">
+          Heavier small variant used by <code>Normal.py</code> &amp; <code>Suspicious.py</code> during dataset generation for higher-quality keypoint extraction.
+        </div>
+        <div class="node-tags">
+          <span class="tag violet">Training Only</span>
+          <span class="tag violet">YOLO11s</span>
+          <span class="tag violet">20 MB</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- arrow -->
+  <div style="text-align:center; padding: 4px 0;">
+    <div class="arrow-line"></div>
+    <div class="arrow"><span class="arrow-label">34 Keypoint Features (x0–x16, y0–y16) → XGBoost DMatrix</span></div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ══ LAYER 4: CLASSIFICATION ══ -->
+  <div class="layer layer-class">
+    <span class="layer-label">④ Classification Layer — Behaviour Analysis</span>
+    <div class="node-row center">
+
+      <div class="node pink" data-tooltip="XGBoost binary classifier trained on keypoint CSV features">
+        <div class="node-icon">⚡</div>
+        <div class="node-title">XGBoost Classifier</div>
+        <div class="node-file">trained_model.json  (44 KB)</div>
+        <div class="node-desc">
+          Binary gradient-boosted tree model. Input: 34 normalised keypoint features.
+          Outputs a probability: <strong>&lt; threshold → Suspicious (0)</strong>, ≥ threshold → Normal (1).
+          Trained with <code>binary:logistic</code>, 50 trees, depth 3, lr 0.1.
+        </div>
+        <div class="node-tags">
+          <span class="tag pink">XGBoost</span>
+          <span class="tag pink">Binary:Logistic</span>
+          <span class="tag pink">50 Trees</span>
+          <span class="tag pink">Depth 3</span>
+        </div>
+      </div>
+
+      <div class="node pink" data-tooltip="Configurable suspicion threshold from dashboard slider">
+        <div class="node-icon">🎯</div>
+        <div class="node-title">Suspicion Threshold</div>
+        <div class="node-file">dashboardfinal.py</div>
+        <div class="node-desc">
+          User-adjustable slider (0.3 – 0.9, default 0.5). Predictions below the threshold are classified as <strong>Suspicious</strong>; above as Normal.
+        </div>
+        <div class="node-tags">
+          <span class="tag pink">Configurable</span>
+          <span class="tag pink">Default 0.5</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- arrow -->
+  <div style="text-align:center; padding: 4px 0;">
+    <div class="arrow-line"></div>
+    <div class="arrow"><span class="arrow-label">Prediction Label + Confidence Score → Annotated Frame</span></div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ══ LAYER 5: OUTPUT / ALERTS ══ -->
+  <div class="layer layer-output">
+    <span class="layer-label">⑤ Output & Alert Layer</span>
+    <div class="node-row">
+
+      <div class="node red" data-tooltip="Bounding boxes drawn on frame: red=suspicious, green=normal">
+        <div class="node-icon">🖼️</div>
+        <div class="node-title">Frame Annotation</div>
+        <div class="node-file">dashboardfinal.py</div>
+        <div class="node-desc">Bounding rectangles overlaid: <strong>red</strong> + "!! SUSPICIOUS" label for threats, <strong>green</strong> for normal persons. Labels use cv2.rectangle + custom put_label().</div>
+        <div class="node-tags">
+          <span class="tag red">cv2.rectangle</span>
+          <span class="tag red">Overlay</span>
+        </div>
+      </div>
+
+      <div class="node red" data-tooltip="Suspicious frames auto-saved as JPEG with timestamp">
+        <div class="node-icon">📸</div>
+        <div class="node-title">Frame Capture</div>
+        <div class="node-file">captures/  directory</div>
+        <div class="node-desc">Every 45 frames, suspicious detections are saved as <code>suspect_YYYYMMDD_HHMMSS_fN_sS.jpg</code> to local disk. Max captures slider controls limit.</div>
+        <div class="node-tags">
+          <span class="tag red">JPEG</span>
+          <span class="tag red">Every 45 frames</span>
+          <span class="tag red">cv2.imwrite</span>
+        </div>
+      </div>
+
+      <div class="node amber" data-tooltip="WAV alert sound injected via HTML audio element">
+        <div class="node-icon">🔔</div>
+        <div class="node-title">Audio Alarm</div>
+        <div class="node-file">alertsound.wav  (1 MB)</div>
+        <div class="node-desc">Browser audio element (base64 encoded WAV) plays looped alarm when suspicious person detected. Syncs via localStorage flag <code>retailguard_alarm</code>.</div>
+        <div class="node-tags">
+          <span class="tag amber">WAV</span>
+          <span class="tag amber">localStorage</span>
+          <span class="tag amber">Auto-loop</span>
+        </div>
+      </div>
+
+      <div class="node red" data-tooltip="Alert log with timestamp, frame number and confidence score">
+        <div class="node-icon">📋</div>
+        <div class="node-title">Alert Log</div>
+        <div class="node-file">st.session_state.alerts</div>
+        <div class="node-desc">In-memory ring-buffer of up to 20 most recent alerts, each with timestamp, frame number and XGBoost confidence score. Rendered in real-time in left panel.</div>
+        <div class="node-tags">
+          <span class="tag red">Session State</span>
+          <span class="tag red">Last 20</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- arrow -->
+  <div style="text-align:center; padding: 4px 0;">
+    <div class="arrow-line"></div>
+    <div class="arrow"><span class="arrow-label">RGB Frame bytes → Streamlit st.image() | Metrics → st.empty()</span></div>
+    <div class="arrow-line"></div>
+  </div>
+
+  <!-- ══ LAYER 6: DASHBOARD ══ -->
+  <div class="layer layer-dashboard">
+    <span class="layer-label">⑥ Dashboard Layer — Streamlit UI  (dashboardfinal.py)</span>
+    <div class="node-row">
+
+      <div class="node green" data-tooltip="Source picker modal — File, RTSP, Webcam">
+        <div class="node-icon">🎛️</div>
+        <div class="node-title">Source Picker</div>
+        <div class="node-desc">Full-page modal allowing user to choose between Video File, RTSP Stream or Webcam before detection starts.</div>
+        <div class="node-tags"><span class="tag green">Streamlit</span><span class="tag green">Modal</span></div>
+      </div>
+
+      <div class="node green" data-tooltip="Left control panel with sliders and controls">
+        <div class="node-icon">⚙️</div>
+        <div class="node-title">Control Panel</div>
+        <div class="node-desc">Left column: video source config, confidence &amp; suspicion sliders, START/STOP, clear captures, session log, real-time alert scrollbox.</div>
+        <div class="node-tags"><span class="tag green">Sidebar</span><span class="tag green">Sliders</span></div>
+      </div>
+
+      <div class="node green" data-tooltip="Live annotated video feed in right panel">
+        <div class="node-icon">📺</div>
+        <div class="node-title">Video Feed Panel</div>
+        <div class="node-desc">Right column: 4 live metric cards (Suspicious count, Normal count, Frames, Status) + video_placeholder updated every frame via <code>st.image()</code>.</div>
+        <div class="node-tags"><span class="tag green">st.empty()</span><span class="tag green">st.image()</span></div>
+      </div>
+
+      <div class="node green" data-tooltip="Responsive image gallery of captured suspects">
+        <div class="node-icon">🖼️</div>
+        <div class="node-title">Capture Gallery</div>
+        <div class="node-desc">CSS grid gallery below the video. Displays base64-encoded JPEG thumbnails of all captured shoplifter frames with timestamp &amp; confidence score.</div>
+        <div class="node-tags"><span class="tag green">Base64</span><span class="tag green">HTML Gallery</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ TRAINING PIPELINE — side branch ══ -->
+  <br>
+  <div class="layer layer-training">
+    <span class="layer-label">⑦ Offline Training Pipeline (runs once to produce trained_model.json)</span>
+    <div class="node-row">
+
+      <div class="node amber" data-tooltip="Normal video frames sampled and keypoints extracted">
+        <div class="node-icon">🎞️</div>
+        <div class="node-title">Data Collection: Normal</div>
+        <div class="node-file">Normal.py</div>
+        <div class="node-desc">Samples 1000 frames from <code>nm1.mp4</code>, runs YOLO11s-Pose to extract 17-point keypoints for each detected person, appends rows to <code>nkeypoint.csv</code>.</div>
+        <div class="node-tags"><span class="tag amber">Normal.py</span><span class="tag amber">1000 frames</span></div>
+      </div>
+
+      <div class="node amber" data-tooltip="Suspicious video frames sampled and keypoints extracted">
+        <div class="node-icon">🎞️</div>
+        <div class="node-title">Data Collection: Suspicious</div>
+        <div class="node-file">Suspicious.py</div>
+        <div class="node-desc">Samples 2000 frames from <code>susup1.mp4</code>, extracts keypoints and labels them Suspicious. Appends to the same CSV file for combined dataset.</div>
+        <div class="node-tags"><span class="tag amber">Suspicious.py</span><span class="tag amber">2000 frames</span></div>
+      </div>
+
+      <div class="node amber" data-tooltip="Keypoint CSV combined into dataset for model training">
+        <div class="node-icon">📊</div>
+        <div class="node-title">Dataset CSV</div>
+        <div class="node-file">nkeypoint.csv  (569 KB)</div>
+        <div class="node-desc">Combined labelled dataset: 34 keypoint float features (x0–x16, y0–y16) + label column (<code>Suspicious=0 / Normal=1</code>). Split 80/20 train-test.</div>
+        <div class="node-tags"><span class="tag amber">CSV</span><span class="tag amber">34 features</span><span class="tag amber">2-class</span></div>
+      </div>
+
+      <div class="node amber" data-tooltip="XGBoost model trained and persisted to JSON">
+        <div class="node-icon">🏋️</div>
+        <div class="node-title">Model Training</div>
+        <div class="node-file">model.py</div>
+        <div class="node-desc">XGBClassifier with 50 estimators, depth 3, lr 0.1, <code>binary:logistic</code>. Trained on 80% split, accuracy evaluated, saved to <code>trained_model.json</code>.</div>
+        <div class="node-tags"><span class="tag amber">model.py</span><span class="tag amber">XGBClassifier</span><span class="tag amber">sklearn</span></div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /diagram -->
+
+<!-- ─── DATA FLOW DETAILS ────────────────────────────────────────────────────── -->
+<div class="flow-table-wrap">
+  <div class="section-head">📦 Key Data Flows &amp; Interfaces</div>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#22d3ee;">📥 Frame Ingestion</div>
+      <div class="flow-card-body">
+        <code>cv2.VideoCapture(source)</code> reads one BGR frame per iteration.<br>
+        Resized to <code>(1018, 600)</code> via <code>cv2.resize()</code> before any inference.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#c4b5fd;">🤖 YOLO Output</div>
+      <div class="flow-card-body">
+        <code>results[0].plot(boxes=False)</code> draws skeleton overlay.<br>
+        <code>r.boxes.xyxy</code>, <code>r.boxes.conf</code>, <code>r.keypoints.xyn</code> consumed per detection.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#f9a8d4;">⚡ XGBoost Inference</div>
+      <div class="flow-card-body">
+        Keypoints flattened to 34-column <code>pd.DataFrame</code> → <code>xgb.DMatrix</code> → <code>model.predict()</code>.
+        Returns probability; compared against <code>sus_threshold</code>.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#fca5a5;">🔴 Suspicious Path</div>
+      <div class="flow-card-body">
+        <code>pred == 0</code>: red rectangle drawn, "!! SUSPICIOUS" label, alert appended, alarm triggered, frame saved every 45 frames.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#86efac;">🟢 Normal Path</div>
+      <div class="flow-card-body">
+        <code>pred == 1</code>: green rectangle, "Normal" label, normal_count incremented, no alarm, no capture.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#fcd34d;">🔔 Audio Alarm Sync</div>
+      <div class="flow-card-body">
+        Sets <code>localStorage['retailguard_alarm'] = 'play'|'stop'</code> via injected JS.<br>
+        Polling interval: 200 ms. Hidden <code>&lt;audio&gt;</code> element loops WAV file.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#60a5fa;">📸 Capture Naming</div>
+      <div class="flow-card-body">
+        Files saved as <code>suspect_YYYYMMDD_HHMMSS_fFRAME_sSCORE.jpg</code>.<br>
+        Parsed on reload to rebuild gallery from <code>captures/</code> directory.
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <div class="flow-card-title" style="color:#67e8f9;">🔄 Session State</div>
+      <div class="flow-card-body">
+        Streamlit <code>st.session_state</code> persists: <code>running</code>, <code>alerts[]</code>, <code>captures[]</code>, <code>detector</code>, <code>source_mode</code>, counters across reruns.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── TECH STACK ────────────────────────────────────────────────────────────── -->
+<div class="flow-table-wrap">
+  <div class="section-head">🛠️ Tech Stack</div>
+</div>
+<div class="tech-strip">
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#c4b5fd"></div> Ultralytics YOLO11</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#f9a8d4"></div> XGBoost</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#60a5fa"></div> OpenCV (cv2)</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#86efac"></div> Streamlit</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#fcd34d"></div> NumPy</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#fcd34d"></div> Pandas</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#f87171"></div> scikit-learn</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#22d3ee"></div> cvzone</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#a5b4fc"></div> Python 3.x</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#fb923c"></div> HTML / JS Audio API</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#34d399"></div> Base64 Image Encoding</div>
+  <div class="tech-pill"><div class="tech-pill-dot" style="background:#a78bfa"></div> localStorage</div>
+</div>
+
+<footer>
+  RetailGuard AI — System Architecture Diagram &nbsp;|&nbsp; Generated 2026 &nbsp;|&nbsp; YOLO Pose + XGBoost Shoplifting Detection System
+</footer>
+
+</body>
+</html>
