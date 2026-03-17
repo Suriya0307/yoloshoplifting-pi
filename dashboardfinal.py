@@ -246,7 +246,7 @@ st.markdown("""
 <div class="dashboard-header">
     <div style="font-size:2.2rem;">&#128737;</div>
     <div>
-        <h1>Automated Shoplifting Detection & Alert System</h1>
+        <h1>RetailGuard – Surveillance Dashboard</h1>
         <p>AI-powered shoplifting detection &nbsp;&bull;&nbsp; YOLO Pose + XGBoost &nbsp;&bull;&nbsp; Video File &middot; RTSP &middot; Webcam</p>
     </div>
 </div>
